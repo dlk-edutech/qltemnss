@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Nhãn Hàng</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; }
+        .tieu-de-container { display: flex; justify-content: space-between; align-items: center; background: #007bff; color: white; padding: 10px 20px; border-radius: 5px; margin-bottom: 20px; }
+        .tieu-de-container h2 { margin: 0; }
+        .nut-bam { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; background: #28a745; font-weight: bold; }
+        .nut-bam:hover { opacity: 0.9; }
+        .nut-dang-nhap { background: #ffc107; color: #333; }
+        .nut-huy { background: #dc3545; }
+        .khu-vuc-quan-ly { background: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: none; }
+        .khu-vuc-quan-ly.hien-thi { display: block; }
+        .nhom-nut-chuc-nang { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f8f9fa; cursor: pointer; }
+        th:hover { background-color: #e2e6ea; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 5px; width: 400px; max-width: 90%; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .hanh-dong-btn { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: none; border-radius: 3px; color: white; }
+        .btn-sua { background: #17a2b8; }
+        .btn-xoa { background: #dc3545; }
+    </style>
+</head>
+<body>
+
+    <div class="tieu-de-container">
+        <h2>Quản Lý Nhãn Hàng</h2>
+        <div>
+            <span id="trangThaiDangNhap" style="margin-right: 15px;"></span>
+            <button id="btnDoiMa" class="nut-bam nut-dang-nhap" style="display: none;" onclick="moHopThoaiDoiMa()">Đổi mã PIN</button>
+            <button id="btnDangNhap" class="nut-bam nut-dang-nhap" onclick="xuLyDangNhapXuat()">Đăng nhập</button>
+        </div>
+    </div>
+
+    <div id="khuVucQuanLy" class="khu-vuc-quan-ly">
+        <div class="nhom-nut-chuc-nang">
+            <button class="nut-bam" onclick="moHopThoaiThem()">+ Thêm nhãn mới</button>
+            <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display: none;" onchange="nhapDuLieuExcel(event)">
+            <button class="nut-bam" style="background: #17a2b8;" onclick="document.getElementById('fileExcel').click()">Import Excel</button>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Tên nhãn</th>
+                <th onclick="sapXepDuLieu()">Ngày cập nhật (Báo hết / Gửi in / Đã nhận) ↕</th>
+                <th>Báo hết</th>
+                <th>Đã gửi in</th>
+                <th>Đã nhận</th>
+                <th>Ghi chú</th>
+                <th id="cotHanhDong" style="display: none;">Hành động</th>
+            </tr>
+        </thead>
+        <tbody id="bangDuLieu">
+            </tbody>
+    </table>
+
+    <div id="modalNhanHang" class="modal">
+        <div class="modal-content">
+            <h3 id="tieuDeModal">Thêm nhãn mới</h3>
+            <input type="hidden" id="idNhan">
+            <div class="form-group">
+                <label>Tên nhãn:</label>
+                <input type="text" id="tenNhan" placeholder="Nhập tên nhãn">
+            </div>
+            <div class="form-group">
+                <label>Báo hết:</label>
+                <input type="date" id="baoHet" onchange="xuLyChonNgay('baoHet')">
+            </div>
+            <div class="form-group">
+                <label>Đã gửi in:</label>
+                <input type="date" id="daGuiIn" onchange="xuLyChonNgay('daGuiIn')">
+            </div>
+            <div class="form-group">
+                <label>Đã nhận:</label>
+                <input type="date" id="daNhan" onchange="xuLyChonNgay('daNhan')">
+            </div>
+            <div class="form-group">
+                <label>Ghi chú:</label>
+                <input type="text" id="ghiChu" placeholder="Nhập ghi chú">
+            </div>
+            <div style="text-align: right;">
+                <button class="nut-bam nut-huy" onclick="dongModal('modalNhanHang')">Hủy</button>
+                <button class="nut-bam" onclick="luuNhanHang()">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalPin" class="modal">
+        <div class="modal-content" style="width: 300px;">
+            <h3>Nhập mã PIN</h3>
+            <div class="form-group">
+                <input type="password" id="maPinInput" placeholder="Nhập mã PIN...">
+            </div>
+            <div style="text-align: right;">
+                <button class="nut-bam nut-huy" onclick="dongModal('modalPin')">Hủy</button>
+                <button class="nut-bam" onclick="xacNhanDangNhap()">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalDoiPin" class="modal">
+        <div class="modal-content" style="width: 300px;">
+            <h3>Đổi mã PIN</h3>
+            <div class="form-group">
+                <input type="password" id="pinCu" placeholder="Mã PIN hiện tại">
+            </div>
+            <div class="form-group">
+                <input type="password" id="pinMoi" placeholder="Mã PIN mới">
+            </div>
+            <div style="text-align: right;">
+                <button class="nut-bam nut-huy" onclick="dongModal('modalDoiPin')">Hủy</button>
+                <button class="nut-bam" onclick="luuPinMoi()">Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // cau hinh firebase
+        const cauHinhFirebase = {
+            apiKey: "AIzaSyCycjXI51D7-y0Jg6UjW4IsyFXdL_giEw4",
+            authDomain: "qltemnss.firebaseapp.com",
+            databaseURL: "https://qltemnss-default-rtdb.firebaseio.com",
+            projectId: "qltemnss",
+            storageBucket: "qltemnss.firebasestorage.app",
+            messagingSenderId: "817581559896",
+            appId: "1:817581559896:web:46e744f7f095031fb3fa2d"
+        };
+        
+        // khoi tao firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(cauHinhFirebase);
+        }
+        const dataBase = firebase.database();
+
+        // bien toan cuc
+        let daDangNhap = false;
+        let danhSachNhan = [];
+        let thuTuSapXep = -1; // -1: giam dan (moi nhat tren cung), 1: tang dan
+
+        // khoi tao ma pin mac dinh la 1111 neu chua co
+        dataBase.ref('cai_dat/ma_pin').once('value', snapshot => {
+            if (!snapshot.exists()) {
+                dataBase.ref('cai_dat/ma_pin').set('1111');
+            }
+        });
+
+        // ham hien thi du lieu
+        function layDuLieu() {
+            dataBase.ref('nhan_hang').on('value', snapshot => {
+                danhSachNhan = [];
+                snapshot.forEach(child => {
+                    danhSachNhan.push({ id: child.key, ...child.val() });
+                });
+                hienThiBang();
+            });
+        }
+
+        // ham lay ngay de sap xep
+        function layGiaTriNgay(nhan) {
+            let chuoiNgay = nhan.bao_het || nhan.da_gui_in || nhan.da_nhan || "";
+            if (!chuoiNgay) return 0;
+            return new Date(chuoiNgay).getTime();
+        }
+
+        function sapXepDuLieu() {
+            thuTuSapXep *= -1;
+            danhSachNhan.sort((a, b) => {
+                let ngayA = layGiaTriNgay(a);
+                let ngayB = layGiaTriNgay(b);
+                return (ngayA - ngayB) * thuTuSapXep;
+            });
+            hienThiBang();
+        }
+
+        function dinhDangNgayVN(chuoiNgayYMD) {
+            if (!chuoiNgayYMD) return "";
+            let phanTu = chuoiNgayYMD.split("-");
+            if (phanTu.length === 3) {
+                return `${phanTu[2]}/${phanTu[1]}/${phanTu[0].substring(2)}`; 
+            }
+            return chuoiNgayYMD;
+        }
+
+        function hienThiBang() {
+            const tbody = document.getElementById('bangDuLieu');
+            tbody.innerHTML = '';
+            
+            if(thuTuSapXep === -1) {
+                danhSachNhan.sort((a, b) => layGiaTriNgay(b) - layGiaTriNgay(a));
+            }
+
+            danhSachNhan.forEach(nhan => {
+                let tr = document.createElement('tr');
+                
+                let ngayTongHop = nhan.bao_het ? "Báo hết: " + dinhDangNgayVN(nhan.bao_het) : 
+                                  nhan.da_gui_in ? "Đã gửi in: " + dinhDangNgayVN(nhan.da_gui_in) : 
+                                  nhan.da_nhan ? "Đã nhận: " + dinhDangNgayVN(nhan.da_nhan) : "";
+
+                let html = `
+                    <td><b>${nhan.ten || ''}</b></td>
+                    <td style="color:#007bff; font-weight:bold;">${ngayTongHop}</td>
+                    <td>${dinhDangNgayVN(nhan.bao_het)}</td>
+                    <td>${dinhDangNgayVN(nhan.da_gui_in)}</td>
+                    <td>${dinhDangNgayVN(nhan.da_nhan)}</td>
+                    <td>${nhan.ghi_chu || ''}</td>
+                `;
+
+                if (daDangNhap) {
+                    html += `
+                        <td>
+                            <button class="hanh-dong-btn btn-sua" onclick="moHopThoaiSua('${nhan.id}')">Sửa</button>
+                            <button class="hanh-dong-btn btn-xoa" onclick="xoaNhanHang('${nhan.id}')">Xóa</button>
+                        </td>
+                    `;
+                }
+
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // logic tu dong xoa 2 cot ngay
+        function xuLyChonNgay(truongDuocChon) {
+            let gTriBaoHet = document.getElementById('baoHet');
+            let gTriDaGuiIn = document.getElementById('daGuiIn');
+            let gTriDaNhan = document.getElementById('daNhan');
+
+            if (truongDuocChon === 'baoHet' && gTriBaoHet.value !== '') {
+                gTriDaGuiIn.value = '';
+                gTriDaNhan.value = '';
+            } else if (truongDuocChon === 'daGuiIn' && gTriDaGuiIn.value !== '') {
+                gTriBaoHet.value = '';
+                gTriDaNhan.value = '';
+            } else if (truongDuocChon === 'daNhan' && gTriDaNhan.value !== '') {
+                gTriBaoHet.value = '';
+                gTriDaGuiIn.value = '';
+            }
+        }
+
+        // them va sua nhan hang
+        function moHopThoaiThem() {
+            document.getElementById('tieuDeModal').innerText = 'Thêm nhãn mới';
+            document.getElementById('idNhan').value = '';
+            document.getElementById('tenNhan').value = '';
+            document.getElementById('baoHet').value = '';
+            document.getElementById('daGuiIn').value = '';
+            document.getElementById('daNhan').value = '';
+            document.getElementById('ghiChu').value = '';
+            document.getElementById('modalNhanHang').style.display = 'flex';
+        }
+
+        function moHopThoaiSua(id) {
+            let nhan = danhSachNhan.find(n => n.id === id);
+            if (nhan) {
+                document.getElementById('tieuDeModal').innerText = 'Cập nhật nhãn hàng';
+                document.getElementById('idNhan').value = nhan.id;
+                document.getElementById('tenNhan').value = nhan.ten || '';
+                document.getElementById('baoHet').value = nhan.bao_het || '';
+                document.getElementById('daGuiIn').value = nhan.da_gui_in || '';
+                document.getElementById('daNhan').value = nhan.da_nhan || '';
+                document.getElementById('ghiChu').value = nhan.ghi_chu || '';
+                document.getElementById('modalNhanHang').style.display = 'flex';
+            }
+        }
+
+        function dongModal(idModal) {
+            document.getElementById(idModal).style.display = 'none';
+        }
+
+        function luuNhanHang() {
+            let id = document.getElementById('idNhan').value;
+            let duLieu = {
+                ten: document.getElementById('tenNhan').value.trim(),
+                bao_het: document.getElementById('baoHet').value,
+                da_gui_in: document.getElementById('daGuiIn').value,
+                da_nhan: document.getElementById('daNhan').value,
+                ghi_chu: document.getElementById('ghiChu').value.trim()
+            };
+
+            if (!duLieu.ten) {
+                alert("Vui lòng nhập tên nhãn!");
+                return;
+            }
+
+            if (id) {
+                dataBase.ref('nhan_hang/' + id).update(duLieu).then(() => {
+                    dongModal('modalNhanHang');
+                });
+            } else {
+                dataBase.ref('nhan_hang').push(duLieu).then(() => {
+                    dongModal('modalNhanHang');
+                });
+            }
+        }
+
+        function xoaNhanHang(id) {
+            if (confirm("Thầy có chắc chắn muốn xóa nhãn hàng này không?")) {
+                dataBase.ref('nhan_hang/' + id).remove();
+            }
+        }
+
+        // dang nhap xuat
+        function xuLyDangNhapXuat() {
+            if (daDangNhap) {
+                daDangNhap = false;
+                capNhatGiaoDien();
+            } else {
+                document.getElementById('maPinInput').value = '';
+                document.getElementById('modalPin').style.display = 'flex';
+            }
+        }
+
+        function xacNhanDangNhap() {
+            let pinNhap = document.getElementById('maPinInput').value;
+            dataBase.ref('cai_dat/ma_pin').once('value').then(snapshot => {
+                let pinGoc = snapshot.val() || '1111';
+                if (pinNhap === pinGoc) {
+                    daDangNhap = true;
+                    dongModal('modalPin');
+                    capNhatGiaoDien();
+                } else {
+                    alert("Mã PIN không chính xác!");
+                }
+            });
+        }
+
+        // doi ma pin
+        function moHopThoaiDoiMa() {
+            document.getElementById('pinCu').value = '';
+            document.getElementById('pinMoi').value = '';
+            document.getElementById('modalDoiPin').style.display = 'flex';
+        }
+
+        function luuPinMoi() {
+            let pinCu = document.getElementById('pinCu').value;
+            let pinMoi = document.getElementById('pinMoi').value;
+
+            if(!pinMoi) {
+                alert("Vui lòng nhập mã PIN mới!"); return;
+            }
+
+            dataBase.ref('cai_dat/ma_pin').once('value').then(snapshot => {
+                let pinGoc = snapshot.val() || '1111';
+                if (pinCu === pinGoc) {
+                    dataBase.ref('cai_dat/ma_pin').set(pinMoi).then(() => {
+                        alert("Đổi mã PIN thành công!");
+                        dongModal('modalDoiPin');
+                    });
+                } else {
+                    alert("Mã PIN hiện tại không đúng!");
+                }
+            });
+        }
+
+        function capNhatGiaoDien() {
+            let btnDangNhap = document.getElementById('btnDangNhap');
+            let khuVucQL = document.getElementById('khuVucQuanLy');
+            let cotHanhDong = document.getElementById('cotHanhDong');
+            let btnDoiMa = document.getElementById('btnDoiMa');
+
+            if (daDangNhap) {
+                btnDangNhap.innerText = "Đăng xuất";
+                btnDangNhap.style.background = "#dc3545";
+                khuVucQL.classList.add('hien-thi');
+                cotHanhDong.style.display = "table-cell";
+                btnDoiMa.style.display = "inline-block";
+            } else {
+                btnDangNhap.innerText = "Đăng nhập";
+                btnDangNhap.style.background = "#ffc107";
+                khuVucQL.classList.remove('hien-thi');
+                cotHanhDong.style.display = "none";
+                btnDoiMa.style.display = "none";
+            }
+            hienThiBang();
+        }
+
+        // import excel
+        function chuyenDoiNgayExcel(soExcel) {
+            if (!soExcel) return "";
+            if (typeof soExcel === "string") {
+                let phanTu = soExcel.split('/');
+                if(phanTu.length === 3) {
+                    return `${phanTu[2]}-${phanTu[1].padStart(2, '0')}-${phanTu[0].padStart(2, '0')}`;
+                }
+                return soExcel; 
+            }
+            let ngayUTC = new Date(Math.round((soExcel - 25569) * 86400 * 1000));
+            let nam = ngayUTC.getFullYear();
+            let thang = String(ngayUTC.getMonth() + 1).padStart(2, '0');
+            let ngay = String(ngayUTC.getDate()).padStart(2, '0');
+            return `${nam}-${thang}-${ngay}`;
+        }
+
+        function nhapDuLieuExcel(event) {
+            let file = event.target.files[0];
+            if (!file) return;
+
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let duLieuData = new Uint8Array(e.target.result);
+                let workbook = XLSX.read(duLieuData, {type: 'array'});
+                let sheetName = workbook.SheetNames[0];
+                let worksheet = workbook.Sheets[sheetName];
+                let jsonArray = XLSX.utils.sheet_to_json(worksheet, {raw: false});
+
+                let soLuongThem = 0;
+                jsonArray.forEach(row => {
+                    let tenNhanExcel = row["Tên nhãn"] || row["Ten nhan"];
+                    if (tenNhanExcel) {
+                        let duLieuMoi = {
+                            ten: tenNhanExcel,
+                            bao_het: chuyenDoiNgayExcel(row["Báo hết"] || row["Bao het"]),
+                            da_gui_in: chuyenDoiNgayExcel(row["Đã gửi in"] || row["Da gui in"]),
+                            da_nhan: chuyenDoiNgayExcel(row["Đã nhận"] || row["Da nhan"]),
+                            ghi_chu: row["Ghi chú"] || row["Ghi chu"] || ""
+                        };
+                        dataBase.ref('nhan_hang').push(duLieuMoi);
+                        soLuongThem++;
+                    }
+                });
+                alert(`Đã import thành công ${soLuongThem} nhãn hàng!`);
+                document.getElementById('fileExcel').value = ""; 
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // chay khi khoi dong
+        window.onload = function() {
+            layDuLieu();
+        };
+    </script>
+</body>
+</html>
