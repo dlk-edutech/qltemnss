@@ -153,7 +153,7 @@
         // bien toan cuc
         let daDangNhap = false;
         let danhSachNhan = [];
-        let thuTuSapXep = -1; // -1: giam dan, 1: tang dan
+        let thuTuSapXep = 1; // 1: mac dinh (tang dan, cu den moi), -1: dao nguoc
 
         // khoi tao ma pin mac dinh
         dataBase.ref('cai_dat/ma_pin').once('value', snapshot => {
@@ -169,12 +169,11 @@
                 snapshot.forEach(child => {
                     danhSachNhan.push({ id: child.key, ...child.val() });
                 });
-                capNhatDanhSachGoiY(); // cap nhat danh sach goi y tim kiem
+                capNhatDanhSachGoiY();
                 hienThiBang();
             });
         }
 
-        // cap nhat the datalist de goi y ten
         function capNhatDanhSachGoiY() {
             let danhSach = document.getElementById('danhSachTenNhan');
             danhSach.innerHTML = '';
@@ -189,7 +188,6 @@
             });
         }
 
-        // xu ly khi bam nut thuc hien tim hoac them
         function xuLyTimKiem() {
             let oTimKiem = document.getElementById('oTimKiem');
             let tuKhoa = oTimKiem.value.trim();
@@ -200,7 +198,6 @@
                 return;
             }
 
-            // tim kiem khong phan biet hoa thuong
             let nhanTimThay = danhSachNhan.find(n => n.ten && n.ten.toLowerCase() === tuKhoa.toLowerCase());
 
             if (nhanTimThay) {
@@ -209,23 +206,25 @@
                 moHopThoaiThem(tuKhoa);
             }
             
-            // xoa trang o tim kiem de chuan bi cho lan sau
             oTimKiem.value = '';
         }
 
+        // 3 ham ho tro viec sap xep nhieu lop
         function layGiaTriNgay(nhan) {
             let chuoiNgay = nhan.bao_het || nhan.da_gui_in || nhan.da_nhan || "";
             if (!chuoiNgay) return 0;
             return new Date(chuoiNgay).getTime();
         }
 
+        function layNhomTrangThai(nhan) {
+            if (nhan.bao_het) return 1;
+            if (nhan.da_gui_in) return 2;
+            if (nhan.da_nhan) return 3;
+            return 4; // nhung nhan khong co ngay nao se nam cuoi cung
+        }
+
         function sapXepDuLieu() {
-            thuTuSapXep *= -1;
-            danhSachNhan.sort((a, b) => {
-                let ngayA = layGiaTriNgay(a);
-                let ngayB = layGiaTriNgay(b);
-                return (ngayA - ngayB) * thuTuSapXep;
-            });
+            thuTuSapXep *= -1; // dao chieu sap xep
             hienThiBang();
         }
 
@@ -242,9 +241,27 @@
             const tbody = document.getElementById('bangDuLieu');
             tbody.innerHTML = '';
             
-            if(thuTuSapXep === -1) {
-                danhSachNhan.sort((a, b) => layGiaTriNgay(b) - layGiaTriNgay(a));
-            }
+            // thuc hien sap xep moi lan hien thi
+            danhSachNhan.sort((a, b) => {
+                // uu tien 1: sap xep theo nhom (Bao het -> Gui in -> Da nhan)
+                let nhomA = layNhomTrangThai(a);
+                let nhomB = layNhomTrangThai(b);
+                if (nhomA !== nhomB) {
+                    return (nhomA - nhomB) * thuTuSapXep;
+                }
+
+                // uu tien 2: cung nhom, sap xep theo thoi gian (cu den moi)
+                let ngayA = layGiaTriNgay(a);
+                let ngayB = layGiaTriNgay(b);
+                if (ngayA !== ngayB) {
+                    return (ngayA - ngayB) * thuTuSapXep;
+                }
+
+                // uu tien 3: cung ngay, sap xep theo ten (A-Z)
+                let tenA = (a.ten || "").toLowerCase();
+                let tenB = (b.ten || "").toLowerCase();
+                return tenA.localeCompare(tenB) * thuTuSapXep;
+            });
 
             danhSachNhan.forEach(nhan => {
                 let tr = document.createElement('tr');
@@ -511,7 +528,6 @@
         window.onload = function() {
             layDuLieu();
             
-            // them su kien bam enter de xac nhan dang nhap
             document.getElementById("maPinInput").addEventListener("keypress", function(suKien) {
                 if (suKien.key === "Enter") {
                     suKien.preventDefault();
@@ -519,7 +535,6 @@
                 }
             });
 
-            // them su kien bam enter de thuc hien tim/them nhan
             document.getElementById("oTimKiem").addEventListener("keypress", function(suKien) {
                 if (suKien.key === "Enter") {
                     suKien.preventDefault();
