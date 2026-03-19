@@ -133,7 +133,7 @@
         const cauHinhFirebase = {
             apiKey: "AIzaSyCycjXI51D7-y0Jg6UjW4IsyFXdL_giEw4",
             authDomain: "qltemnss.firebaseapp.com",
-            databaseURL: "https://qltemnss-default-rtdb.firebaseio.com",
+            databaseURL: "https://qltemnss-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "qltemnss",
             storageBucket: "qltemnss.firebasestorage.app",
             messagingSenderId: "817581559896",
@@ -321,7 +321,6 @@
             }
         }
 
-        // cap nhat ham xac nhan dang nhap kem chong treo
         function xacNhanDangNhap() {
             let pinNhap = document.getElementById('maPinInput').value;
             if (!pinNhap) {
@@ -335,10 +334,9 @@
 
             let ketNoiThanhCong = false;
             
-            // dat thoi gian cho 5 giay de canh bao neu bi treo ket noi
             let thoiGianCho = setTimeout(function() {
                 if (!ketNoiThanhCong) {
-                    alert("Không thể kết nối với Firebase. Thầy hãy kiểm tra lại thông số 'databaseURL' trong code xem có bị thiếu không nhé!");
+                    alert("Không thể kết nối với Firebase. Thầy hãy kiểm tra lại kết nối mạng nhé!");
                     nutXacNhan.innerText = "Xác nhận";
                     nutXacNhan.disabled = false;
                 }
