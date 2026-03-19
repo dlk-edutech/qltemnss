@@ -18,7 +18,8 @@
         .nut-huy { background: #dc3545; }
         .khu-vuc-quan-ly { background: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: none; }
         .khu-vuc-quan-ly.hien-thi { display: block; }
-        .nhom-nut-chuc-nang { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .nhom-nut-chuc-nang { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+        .o-tim-kiem { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 250px; }
         table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
         th { background-color: #f8f9fa; cursor: pointer; }
@@ -46,9 +47,12 @@
 
     <div id="khuVucQuanLy" class="khu-vuc-quan-ly">
         <div class="nhom-nut-chuc-nang">
-            <button class="nut-bam" onclick="moHopThoaiThem()">+ Thêm nhãn mới</button>
+            <input type="text" id="oTimKiem" class="o-tim-kiem" list="danhSachTenNhan" placeholder="Nhập tên nhãn để sửa hoặc thêm mới...">
+            <datalist id="danhSachTenNhan"></datalist>
+            <button class="nut-bam" onclick="xuLyTimKiem()">Thực hiện</button>
+
             <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display: none;" onchange="nhapDuLieuExcel(event)">
-            <button class="nut-bam" style="background: #17a2b8;" onclick="document.getElementById('fileExcel').click()">Import Excel</button>
+            <button class="nut-bam" style="background: #17a2b8; margin-left: auto;" onclick="document.getElementById('fileExcel').click()">Import Excel</button>
         </div>
     </div>
 
@@ -165,8 +169,48 @@
                 snapshot.forEach(child => {
                     danhSachNhan.push({ id: child.key, ...child.val() });
                 });
+                capNhatDanhSachGoiY(); // cap nhat danh sach goi y tim kiem
                 hienThiBang();
             });
+        }
+
+        // cap nhat the datalist de goi y ten
+        function capNhatDanhSachGoiY() {
+            let danhSach = document.getElementById('danhSachTenNhan');
+            danhSach.innerHTML = '';
+            let cacTenDaCo = [];
+            danhSachNhan.forEach(nhan => {
+                if (nhan.ten && !cacTenDaCo.includes(nhan.ten)) {
+                    cacTenDaCo.push(nhan.ten);
+                    let tuyChon = document.createElement('option');
+                    tuyChon.value = nhan.ten;
+                    danhSach.appendChild(tuyChon);
+                }
+            });
+        }
+
+        // xu ly khi bam nut thuc hien tim hoac them
+        function xuLyTimKiem() {
+            let oTimKiem = document.getElementById('oTimKiem');
+            let tuKhoa = oTimKiem.value.trim();
+            
+            if (!tuKhoa) {
+                alert("Vui lòng nhập tên nhãn!");
+                oTimKiem.focus();
+                return;
+            }
+
+            // tim kiem khong phan biet hoa thuong
+            let nhanTimThay = danhSachNhan.find(n => n.ten && n.ten.toLowerCase() === tuKhoa.toLowerCase());
+
+            if (nhanTimThay) {
+                moHopThoaiSua(nhanTimThay.id);
+            } else {
+                moHopThoaiThem(tuKhoa);
+            }
+            
+            // xoa trang o tim kiem de chuan bi cho lan sau
+            oTimKiem.value = '';
         }
 
         function layGiaTriNgay(nhan) {
@@ -249,10 +293,10 @@
             }
         }
 
-        function moHopThoaiThem() {
+        function moHopThoaiThem(tenMacDinh) {
             document.getElementById('tieuDeModal').innerText = 'Thêm nhãn mới';
             document.getElementById('idNhan').value = '';
-            document.getElementById('tenNhan').value = '';
+            document.getElementById('tenNhan').value = typeof tenMacDinh === 'string' ? tenMacDinh : '';
             document.getElementById('baoHet').value = '';
             document.getElementById('daGuiIn').value = '';
             document.getElementById('daNhan').value = '';
@@ -472,6 +516,14 @@
                 if (suKien.key === "Enter") {
                     suKien.preventDefault();
                     xacNhanDangNhap();
+                }
+            });
+
+            // them su kien bam enter de thuc hien tim/them nhan
+            document.getElementById("oTimKiem").addEventListener("keypress", function(suKien) {
+                if (suKien.key === "Enter") {
+                    suKien.preventDefault();
+                    xuLyTimKiem();
                 }
             });
         };
