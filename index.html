@@ -13,6 +13,7 @@
         .tieu-de-container h2 { margin: 0; }
         .nut-bam { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; background: #28a745; font-weight: bold; }
         .nut-bam:hover { opacity: 0.9; }
+        .nut-bam:disabled { background: #6c757d; cursor: not-allowed; }
         .nut-dang-nhap { background: #ffc107; color: #333; }
         .nut-huy { background: #dc3545; }
         .khu-vuc-quan-ly { background: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: none; }
@@ -106,7 +107,7 @@
             </div>
             <div style="text-align: right;">
                 <button class="nut-bam nut-huy" onclick="dongModal('modalPin')">Hủy</button>
-                <button class="nut-bam" onclick="xacNhanDangNhap()">Xác nhận</button>
+                <button id="btnXacNhanDangNhap" class="nut-bam" onclick="xacNhanDangNhap()">Xác nhận</button>
             </div>
         </div>
     </div>
@@ -148,9 +149,9 @@
         // bien toan cuc
         let daDangNhap = false;
         let danhSachNhan = [];
-        let thuTuSapXep = -1; // -1: giam dan (moi nhat tren cung), 1: tang dan
+        let thuTuSapXep = -1; // -1: giam dan, 1: tang dan
 
-        // khoi tao ma pin mac dinh la 1111 neu chua co
+        // khoi tao ma pin mac dinh
         dataBase.ref('cai_dat/ma_pin').once('value', snapshot => {
             if (!snapshot.exists()) {
                 dataBase.ref('cai_dat/ma_pin').set('1111');
@@ -168,7 +169,6 @@
             });
         }
 
-        // ham lay ngay de sap xep
         function layGiaTriNgay(nhan) {
             let chuoiNgay = nhan.bao_het || nhan.da_gui_in || nhan.da_nhan || "";
             if (!chuoiNgay) return 0;
@@ -232,7 +232,6 @@
             });
         }
 
-        // logic tu dong xoa 2 cot ngay
         function xuLyChonNgay(truongDuocChon) {
             let gTriBaoHet = document.getElementById('baoHet');
             let gTriDaGuiIn = document.getElementById('daGuiIn');
@@ -250,7 +249,6 @@
             }
         }
 
-        // them va sua nhan hang
         function moHopThoaiThem() {
             document.getElementById('tieuDeModal').innerText = 'Thêm nhãn mới';
             document.getElementById('idNhan').value = '';
@@ -312,7 +310,6 @@
             }
         }
 
-        // dang nhap xuat
         function xuLyDangNhapXuat() {
             if (daDangNhap) {
                 daDangNhap = false;
@@ -320,12 +317,39 @@
             } else {
                 document.getElementById('maPinInput').value = '';
                 document.getElementById('modalPin').style.display = 'flex';
+                setTimeout(() => document.getElementById('maPinInput').focus(), 100);
             }
         }
 
+        // cap nhat ham xac nhan dang nhap kem chong treo
         function xacNhanDangNhap() {
             let pinNhap = document.getElementById('maPinInput').value;
+            if (!pinNhap) {
+                alert("Vui lòng nhập mã PIN!");
+                return;
+            }
+
+            let nutXacNhan = document.getElementById('btnXacNhanDangNhap');
+            nutXacNhan.innerText = "Đang kiểm tra...";
+            nutXacNhan.disabled = true;
+
+            let ketNoiThanhCong = false;
+            
+            // dat thoi gian cho 5 giay de canh bao neu bi treo ket noi
+            let thoiGianCho = setTimeout(function() {
+                if (!ketNoiThanhCong) {
+                    alert("Không thể kết nối với Firebase. Thầy hãy kiểm tra lại thông số 'databaseURL' trong code xem có bị thiếu không nhé!");
+                    nutXacNhan.innerText = "Xác nhận";
+                    nutXacNhan.disabled = false;
+                }
+            }, 5000);
+
             dataBase.ref('cai_dat/ma_pin').once('value').then(snapshot => {
+                ketNoiThanhCong = true;
+                clearTimeout(thoiGianCho);
+                nutXacNhan.innerText = "Xác nhận";
+                nutXacNhan.disabled = false;
+
                 let pinGoc = snapshot.val() || '1111';
                 if (pinNhap === pinGoc) {
                     daDangNhap = true;
@@ -334,10 +358,15 @@
                 } else {
                     alert("Mã PIN không chính xác!");
                 }
+            }).catch(loi => {
+                ketNoiThanhCong = true;
+                clearTimeout(thoiGianCho);
+                nutXacNhan.innerText = "Xác nhận";
+                nutXacNhan.disabled = false;
+                alert("Lỗi kết nối Firebase: " + loi.message);
             });
         }
 
-        // doi ma pin
         function moHopThoaiDoiMa() {
             document.getElementById('pinCu').value = '';
             document.getElementById('pinMoi').value = '';
@@ -387,7 +416,6 @@
             hienThiBang();
         }
 
-        // import excel
         function chuyenDoiNgayExcel(soExcel) {
             if (!soExcel) return "";
             if (typeof soExcel === "string") {
@@ -440,6 +468,14 @@
         // chay khi khoi dong
         window.onload = function() {
             layDuLieu();
+            
+            // them su kien bam enter de xac nhan dang nhap
+            document.getElementById("maPinInput").addEventListener("keypress", function(suKien) {
+                if (suKien.key === "Enter") {
+                    suKien.preventDefault();
+                    xacNhanDangNhap();
+                }
+            });
         };
     </script>
 </body>
