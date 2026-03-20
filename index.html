@@ -66,13 +66,12 @@
                 <th id="cotCheckbox" style="display: none; width: 40px; text-align: center;">
                     <input type="checkbox" id="chonTatCa" onclick="chonTatCaNhan(this)">
                 </th>
-                <th>Tên nhãn</th>
-                <th onclick="sapXepDuLieu()">Ngày cập nhật (Báo hết / Gửi in / Đã nhận) ↕</th>
-                <th>Báo hết</th>
-                <th>Đã gửi in</th>
-                <th>Đã nhận</th>
-                <th>Ghi chú</th>
-                <th id="cotHanhDong" style="display: none;">Hành động</th>
+                <th onclick="sapXepDuLieu()">Tên nhãn ↕</th>
+                <th style="width: 12%;">Báo hết</th>
+                <th style="width: 12%;">Đã gửi in</th>
+                <th style="width: 12%;">Đã nhận</th>
+                <th style="width: 40%;">Ghi chú</th>
+                <th id="cotHanhDong" style="display: none; width: 120px;">Hành động</th>
             </tr>
         </thead>
         <tbody id="bangDuLieu">
@@ -161,7 +160,7 @@
         let daDangNhap = false;
         let danhSachNhan = [];
         let thuTuSapXep = 1; 
-        let lichSuThaoTac = []; // mang luu tru cac hanh dong de hoan tac
+        let lichSuThaoTac = []; 
 
         // khoi tao ma pin mac dinh
         dataBase.ref('cai_dat/ma_pin').once('value', snapshot => {
@@ -289,17 +288,11 @@
 
             danhSachNhan.forEach(nhan => {
                 let tr = document.createElement('tr');
-                
-                let ngayTongHop = nhan.bao_het ? "Báo hết: " + dinhDangNgayVN(nhan.bao_het) : 
-                                  nhan.da_gui_in ? "Đã gửi in: " + dinhDangNgayVN(nhan.da_gui_in) : 
-                                  nhan.da_nhan ? "Đã nhận: " + dinhDangNgayVN(nhan.da_nhan) : "";
-
                 let oCheckbox = daDangNhap ? `<td style="text-align: center;"><input type="checkbox" class="cb-nhan" value="${nhan.id}" onclick="capNhatTrangThaiChonTatCa()"></td>` : "";
 
                 let html = `
                     ${oCheckbox}
                     <td><b>${nhan.ten || ''}</b></td>
-                    <td style="color:#007bff; font-weight:bold;">${ngayTongHop}</td>
                     <td>${dinhDangNgayVN(nhan.bao_het)}</td>
                     <td>${dinhDangNgayVN(nhan.da_gui_in)}</td>
                     <td>${dinhDangNgayVN(nhan.da_nhan)}</td>
@@ -436,7 +429,6 @@
             let ghiChu = document.getElementById('ghiChu').value; 
 
             if (!idValue) {
-                // luu them moi
                 if (!tenNhan) { alert("Vui lòng nhập tên nhãn!"); return; }
                 let duLieu = { ten: tenNhan, bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu.trim() };
                 
@@ -447,11 +439,9 @@
                     dongModal('modalNhanHang'); 
                 });
             } else {
-                // luu cap nhat
                 let mangId = JSON.parse(idValue);
                 
                 if (mangId.length === 1) {
-                    // cap nhat 1 nhan binh thuong
                     if (!tenNhan) { alert("Vui lòng nhập tên nhãn!"); return; }
                     let duLieu = { ten: tenNhan, bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu.trim() };
                     
@@ -465,7 +455,6 @@
                         dongModal('modalNhanHang'); 
                     });
                 } else {
-                    // cap nhat hang loat
                     let duLieuHangLoat = {};
                     if (baoHet !== "" || daGuiIn !== "" || daNhan !== "") {
                         duLieuHangLoat.bao_het = baoHet;
@@ -480,7 +469,6 @@
                         return;
                     }
 
-                    // luu tru du lieu cu cua cac nhan se sua
                     let danhSachCu = mangId.map(id => {
                         let n = danhSachNhan.find(x => x.id === id);
                         let duLieuCu = { ...n };
