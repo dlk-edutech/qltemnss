@@ -24,7 +24,7 @@
         th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
         th { background-color: #f8f9fa; cursor: pointer; }
         th:hover { background-color: #e2e6ea; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 20px; border-radius: 5px; width: 400px; max-width: 90%; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
@@ -32,6 +32,7 @@
         .hanh-dong-btn { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: none; border-radius: 3px; color: white; }
         .btn-sua { background: #17a2b8; }
         .btn-xoa { background: #dc3545; }
+        input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
     </style>
 </head>
 <body>
@@ -59,6 +60,9 @@
     <table>
         <thead>
             <tr>
+                <th id="cotCheckbox" style="display: none; width: 40px; text-align: center;">
+                    <input type="checkbox" id="chonTatCa" onclick="chonTatCaNhan(this)">
+                </th>
                 <th>Tên nhãn</th>
                 <th onclick="sapXepDuLieu()">Ngày cập nhật (Báo hết / Gửi in / Đã nhận) ↕</th>
                 <th>Báo hết</th>
@@ -76,7 +80,7 @@
         <div class="modal-content">
             <h3 id="tieuDeModal">Thêm nhãn mới</h3>
             <input type="hidden" id="idNhan">
-            <div class="form-group">
+            <div class="form-group" id="khuVucTenNhan">
                 <label>Tên nhãn:</label>
                 <input type="text" id="tenNhan" placeholder="Nhập tên nhãn">
             </div>
@@ -209,7 +213,7 @@
             oTimKiem.value = '';
         }
 
-        // 3 ham ho tro viec sap xep nhieu lop
+        // cac ham sap xep
         function layGiaTriNgay(nhan) {
             let chuoiNgay = nhan.bao_het || nhan.da_gui_in || nhan.da_nhan || "";
             if (!chuoiNgay) return 0;
@@ -220,11 +224,11 @@
             if (nhan.bao_het) return 1;
             if (nhan.da_gui_in) return 2;
             if (nhan.da_nhan) return 3;
-            return 4; // nhung nhan khong co ngay nao se nam cuoi cung
+            return 4;
         }
 
         function sapXepDuLieu() {
-            thuTuSapXep *= -1; // dao chieu sap xep
+            thuTuSapXep *= -1; 
             hienThiBang();
         }
 
@@ -237,27 +241,44 @@
             return chuoiNgayYMD;
         }
 
+        // xu ly checkbox chon nhieu
+        function chonTatCaNhan(checkboxTong) {
+            let danhSachCb = document.querySelectorAll('.cb-nhan');
+            danhSachCb.forEach(cb => cb.checked = checkboxTong.checked);
+        }
+
+        function capNhatTrangThaiChonTatCa() {
+            let tatCaCb = document.querySelectorAll('.cb-nhan');
+            let cbDaChon = document.querySelectorAll('.cb-nhan:checked');
+            let cbTong = document.getElementById('chonTatCa');
+            if (tatCaCb.length > 0 && tatCaCb.length === cbDaChon.length) {
+                cbTong.checked = true;
+            } else {
+                cbTong.checked = false;
+            }
+        }
+
         function hienThiBang() {
+            // giu lai trang thai dang chon cua cac checkbox de khong bi mat khi du lieu load lai
+            let cacCbCu = document.querySelectorAll('.cb-nhan:checked');
+            let mangChonCu = Array.from(cacCbCu).map(cb => cb.value);
+
             const tbody = document.getElementById('bangDuLieu');
             tbody.innerHTML = '';
             
-            // thuc hien sap xep moi lan hien thi
             danhSachNhan.sort((a, b) => {
-                // uu tien 1: sap xep theo nhom (Bao het -> Gui in -> Da nhan)
                 let nhomA = layNhomTrangThai(a);
                 let nhomB = layNhomTrangThai(b);
                 if (nhomA !== nhomB) {
                     return (nhomA - nhomB) * thuTuSapXep;
                 }
 
-                // uu tien 2: cung nhom, sap xep theo thoi gian (cu den moi)
                 let ngayA = layGiaTriNgay(a);
                 let ngayB = layGiaTriNgay(b);
                 if (ngayA !== ngayB) {
                     return (ngayA - ngayB) * thuTuSapXep;
                 }
 
-                // uu tien 3: cung ngay, sap xep theo ten (A-Z)
                 let tenA = (a.ten || "").toLowerCase();
                 let tenB = (b.ten || "").toLowerCase();
                 return tenA.localeCompare(tenB) * thuTuSapXep;
@@ -270,7 +291,10 @@
                                   nhan.da_gui_in ? "Đã gửi in: " + dinhDangNgayVN(nhan.da_gui_in) : 
                                   nhan.da_nhan ? "Đã nhận: " + dinhDangNgayVN(nhan.da_nhan) : "";
 
+                let oCheckbox = daDangNhap ? `<td style="text-align: center;"><input type="checkbox" class="cb-nhan" value="${nhan.id}" onclick="capNhatTrangThaiChonTatCa()"></td>` : "";
+
                 let html = `
+                    ${oCheckbox}
                     <td><b>${nhan.ten || ''}</b></td>
                     <td style="color:#007bff; font-weight:bold;">${ngayTongHop}</td>
                     <td>${dinhDangNgayVN(nhan.bao_het)}</td>
@@ -291,6 +315,13 @@
                 tr.innerHTML = html;
                 tbody.appendChild(tr);
             });
+
+            // phuc hoi trang thai cac checkbox da chon
+            let cacCbMoi = document.querySelectorAll('.cb-nhan');
+            cacCbMoi.forEach(cb => {
+                if (mangChonCu.includes(cb.value)) cb.checked = true;
+            });
+            capNhatTrangThaiChonTatCa();
         }
 
         function xuLyChonNgay(truongDuocChon) {
@@ -312,7 +343,8 @@
 
         function moHopThoaiThem(tenMacDinh) {
             document.getElementById('tieuDeModal').innerText = 'Thêm nhãn mới';
-            document.getElementById('idNhan').value = '';
+            document.getElementById('idNhan').value = ''; // rong la them moi
+            document.getElementById('khuVucTenNhan').style.display = 'block'; // hien o ten nhan
             document.getElementById('tenNhan').value = typeof tenMacDinh === 'string' ? tenMacDinh : '';
             document.getElementById('baoHet').value = '';
             document.getElementById('daGuiIn').value = '';
@@ -323,16 +355,36 @@
 
         function moHopThoaiSua(id) {
             let nhan = danhSachNhan.find(n => n.id === id);
-            if (nhan) {
+            if (!nhan) return;
+
+            // kiem tra xem nhan duoc click co nam trong danh sach dang duoc chon nhieu hay khong
+            let danhSachChon = Array.from(document.querySelectorAll('.cb-nhan:checked')).map(cb => cb.value);
+
+            if (danhSachChon.includes(id) && danhSachChon.length > 1) {
+                // che do sua hang loat
+                document.getElementById('tieuDeModal').innerText = `Cập nhật ${danhSachChon.length} nhãn hàng`;
+                document.getElementById('idNhan').value = JSON.stringify(danhSachChon); // luu mang ID
+                document.getElementById('khuVucTenNhan').style.display = 'none'; // an ten nhan
+                
+                // lay thong tin nhan duoc click lam mau hien thi
+                document.getElementById('baoHet').value = nhan.bao_het || '';
+                document.getElementById('daGuiIn').value = nhan.da_gui_in || '';
+                document.getElementById('daNhan').value = nhan.da_nhan || '';
+                document.getElementById('ghiChu').value = nhan.ghi_chu || '';
+            } else {
+                // che do sua 1 nhan doc lap
                 document.getElementById('tieuDeModal').innerText = 'Cập nhật nhãn hàng';
-                document.getElementById('idNhan').value = nhan.id;
+                document.getElementById('idNhan').value = JSON.stringify([id]); // luu mang 1 ID
+                document.getElementById('khuVucTenNhan').style.display = 'block'; // hien ten nhan
+                
                 document.getElementById('tenNhan').value = nhan.ten || '';
                 document.getElementById('baoHet').value = nhan.bao_het || '';
                 document.getElementById('daGuiIn').value = nhan.da_gui_in || '';
                 document.getElementById('daNhan').value = nhan.da_nhan || '';
                 document.getElementById('ghiChu').value = nhan.ghi_chu || '';
-                document.getElementById('modalNhanHang').style.display = 'flex';
             }
+            
+            document.getElementById('modalNhanHang').style.display = 'flex';
         }
 
         function dongModal(idModal) {
@@ -340,28 +392,39 @@
         }
 
         function luuNhanHang() {
-            let id = document.getElementById('idNhan').value;
-            let duLieu = {
-                ten: document.getElementById('tenNhan').value.trim(),
-                bao_het: document.getElementById('baoHet').value,
-                da_gui_in: document.getElementById('daGuiIn').value,
-                da_nhan: document.getElementById('daNhan').value,
-                ghi_chu: document.getElementById('ghiChu').value.trim()
-            };
+            let idValue = document.getElementById('idNhan').value;
+            let tenNhan = document.getElementById('tenNhan').value.trim();
+            let baoHet = document.getElementById('baoHet').value;
+            let daGuiIn = document.getElementById('daGuiIn').value;
+            let daNhan = document.getElementById('daNhan').value;
+            let ghiChu = document.getElementById('ghiChu').value.trim();
 
-            if (!duLieu.ten) {
-                alert("Vui lòng nhập tên nhãn!");
-                return;
-            }
-
-            if (id) {
-                dataBase.ref('nhan_hang/' + id).update(duLieu).then(() => {
-                    dongModal('modalNhanHang');
-                });
+            if (!idValue) {
+                // luu them moi
+                if (!tenNhan) { alert("Vui lòng nhập tên nhãn!"); return; }
+                let duLieu = { ten: tenNhan, bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu };
+                dataBase.ref('nhan_hang').push(duLieu).then(() => { dongModal('modalNhanHang'); });
             } else {
-                dataBase.ref('nhan_hang').push(duLieu).then(() => {
-                    dongModal('modalNhanHang');
-                });
+                // luu cap nhat
+                let mangId = JSON.parse(idValue);
+                
+                if (mangId.length === 1) {
+                    // cap nhat 1 nhan binh thuong
+                    if (!tenNhan) { alert("Vui lòng nhập tên nhãn!"); return; }
+                    let duLieu = { ten: tenNhan, bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu };
+                    dataBase.ref('nhan_hang/' + mangId[0]).update(duLieu).then(() => { dongModal('modalNhanHang'); });
+                } else {
+                    // cap nhat hang loat nhieu nhan (khong luu ten)
+                    let duLieu = { bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu };
+                    let cacPromise = mangId.map(id => dataBase.ref('nhan_hang/' + id).update(duLieu));
+                    
+                    Promise.all(cacPromise).then(() => {
+                        dongModal('modalNhanHang');
+                        // bo chon tat ca cac checkbox sau khi luu thanh cong
+                        document.querySelectorAll('.cb-nhan').forEach(cb => cb.checked = false);
+                        document.getElementById('chonTatCa').checked = false;
+                    });
+                }
             }
         }
 
@@ -457,6 +520,7 @@
             let btnDangNhap = document.getElementById('btnDangNhap');
             let khuVucQL = document.getElementById('khuVucQuanLy');
             let cotHanhDong = document.getElementById('cotHanhDong');
+            let cotCheckbox = document.getElementById('cotCheckbox');
             let btnDoiMa = document.getElementById('btnDoiMa');
 
             if (daDangNhap) {
@@ -464,12 +528,14 @@
                 btnDangNhap.style.background = "#dc3545";
                 khuVucQL.classList.add('hien-thi');
                 cotHanhDong.style.display = "table-cell";
+                cotCheckbox.style.display = "table-cell";
                 btnDoiMa.style.display = "inline-block";
             } else {
                 btnDangNhap.innerText = "Đăng nhập";
                 btnDangNhap.style.background = "#ffc107";
                 khuVucQL.classList.remove('hien-thi');
                 cotHanhDong.style.display = "none";
+                cotCheckbox.style.display = "none";
                 btnDoiMa.style.display = "none";
             }
             hienThiBang();
