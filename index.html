@@ -52,8 +52,11 @@
             <datalist id="danhSachTenNhan"></datalist>
             <button class="nut-bam" onclick="xuLyTimKiem()">Thực hiện</button>
 
-            <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display: none;" onchange="nhapDuLieuExcel(event)">
-            <button class="nut-bam" style="background: #17a2b8; margin-left: auto;" onclick="document.getElementById('fileExcel').click()">Import Excel</button>
+            <div style="margin-left: auto; display: flex; gap: 10px;">
+                <button id="btnHoanTac" class="nut-bam" style="background: #6c757d; display: none;" onclick="thucHienHoanTac()">↩ Hoàn tác</button>
+                <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display: none;" onchange="nhapDuLieuExcel(event)">
+                <button class="nut-bam" style="background: #17a2b8;" onclick="document.getElementById('fileExcel').click()">Import Excel</button>
+            </div>
         </div>
     </div>
 
@@ -157,7 +160,8 @@
         // bien toan cuc
         let daDangNhap = false;
         let danhSachNhan = [];
-        let thuTuSapXep = 1; // 1: mac dinh (tang dan, cu den moi), -1: dao nguoc
+        let thuTuSapXep = 1; 
+        let lichSuThaoTac = []; // mang luu tru cac hanh dong de hoan tac
 
         // khoi tao ma pin mac dinh
         dataBase.ref('cai_dat/ma_pin').once('value', snapshot => {
@@ -259,7 +263,6 @@
         }
 
         function hienThiBang() {
-            // giu lai trang thai dang chon cua cac checkbox de khong bi mat khi du lieu load lai
             let cacCbCu = document.querySelectorAll('.cb-nhan:checked');
             let mangChonCu = Array.from(cacCbCu).map(cb => cb.value);
 
@@ -316,7 +319,6 @@
                 tbody.appendChild(tr);
             });
 
-            // phuc hoi trang thai cac checkbox da chon
             let cacCbMoi = document.querySelectorAll('.cb-nhan');
             cacCbMoi.forEach(cb => {
                 if (mangChonCu.includes(cb.value)) cb.checked = true;
@@ -343,13 +345,14 @@
 
         function moHopThoaiThem(tenMacDinh) {
             document.getElementById('tieuDeModal').innerText = 'Thêm nhãn mới';
-            document.getElementById('idNhan').value = ''; // rong la them moi
-            document.getElementById('khuVucTenNhan').style.display = 'block'; // hien o ten nhan
+            document.getElementById('idNhan').value = ''; 
+            document.getElementById('khuVucTenNhan').style.display = 'block'; 
             document.getElementById('tenNhan').value = typeof tenMacDinh === 'string' ? tenMacDinh : '';
             document.getElementById('baoHet').value = '';
             document.getElementById('daGuiIn').value = '';
             document.getElementById('daNhan').value = '';
             document.getElementById('ghiChu').value = '';
+            document.getElementById('ghiChu').placeholder = "Nhập ghi chú";
             document.getElementById('modalNhanHang').style.display = 'flex';
         }
 
@@ -357,31 +360,29 @@
             let nhan = danhSachNhan.find(n => n.id === id);
             if (!nhan) return;
 
-            // kiem tra xem nhan duoc click co nam trong danh sach dang duoc chon nhieu hay khong
             let danhSachChon = Array.from(document.querySelectorAll('.cb-nhan:checked')).map(cb => cb.value);
 
             if (danhSachChon.includes(id) && danhSachChon.length > 1) {
-                // che do sua hang loat
                 document.getElementById('tieuDeModal').innerText = `Cập nhật ${danhSachChon.length} nhãn hàng`;
-                document.getElementById('idNhan').value = JSON.stringify(danhSachChon); // luu mang ID
-                document.getElementById('khuVucTenNhan').style.display = 'none'; // an ten nhan
+                document.getElementById('idNhan').value = JSON.stringify(danhSachChon); 
+                document.getElementById('khuVucTenNhan').style.display = 'none'; 
                 
-                // lay thong tin nhan duoc click lam mau hien thi
-                document.getElementById('baoHet').value = nhan.bao_het || '';
-                document.getElementById('daGuiIn').value = nhan.da_gui_in || '';
-                document.getElementById('daNhan').value = nhan.da_nhan || '';
-                document.getElementById('ghiChu').value = nhan.ghi_chu || '';
+                document.getElementById('baoHet').value = '';
+                document.getElementById('daGuiIn').value = '';
+                document.getElementById('daNhan').value = '';
+                document.getElementById('ghiChu').value = '';
+                document.getElementById('ghiChu').placeholder = "Chỉ nhập nếu muốn đổi ghi chú chung...";
             } else {
-                // che do sua 1 nhan doc lap
                 document.getElementById('tieuDeModal').innerText = 'Cập nhật nhãn hàng';
-                document.getElementById('idNhan').value = JSON.stringify([id]); // luu mang 1 ID
-                document.getElementById('khuVucTenNhan').style.display = 'block'; // hien ten nhan
+                document.getElementById('idNhan').value = JSON.stringify([id]); 
+                document.getElementById('khuVucTenNhan').style.display = 'block'; 
                 
                 document.getElementById('tenNhan').value = nhan.ten || '';
                 document.getElementById('baoHet').value = nhan.bao_het || '';
                 document.getElementById('daGuiIn').value = nhan.da_gui_in || '';
                 document.getElementById('daNhan').value = nhan.da_nhan || '';
                 document.getElementById('ghiChu').value = nhan.ghi_chu || '';
+                document.getElementById('ghiChu').placeholder = "Nhập ghi chú";
             }
             
             document.getElementById('modalNhanHang').style.display = 'flex';
@@ -391,19 +392,60 @@
             document.getElementById(idModal).style.display = 'none';
         }
 
+        // cac ham lien quan den hoan tac (undo)
+        function capNhatNutHoanTac() {
+            let btnHoanTac = document.getElementById('btnHoanTac');
+            if (daDangNhap && lichSuThaoTac.length > 0) {
+                btnHoanTac.style.display = 'inline-block';
+            } else {
+                btnHoanTac.style.display = 'none';
+            }
+        }
+
+        function thucHienHoanTac() {
+            if (lichSuThaoTac.length === 0) return;
+            let hanhDongCuoi = lichSuThaoTac.pop();
+            
+            if (hanhDongCuoi.loai === 'THEM') {
+                dataBase.ref('nhan_hang/' + hanhDongCuoi.id).remove();
+            } else if (hanhDongCuoi.loai === 'XOA') {
+                dataBase.ref('nhan_hang/' + hanhDongCuoi.id).set(hanhDongCuoi.duLieuCu);
+            } else if (hanhDongCuoi.loai === 'SUA') {
+                dataBase.ref('nhan_hang/' + hanhDongCuoi.id).set(hanhDongCuoi.duLieuCu);
+            } else if (hanhDongCuoi.loai === 'SUA_NHIEU') {
+                let cacPromise = hanhDongCuoi.danhSachCu.map(item => 
+                    dataBase.ref('nhan_hang/' + item.id).set(item.duLieuCu)
+                );
+                Promise.all(cacPromise);
+            } else if (hanhDongCuoi.loai === 'IMPORT') {
+                let cacPromise = hanhDongCuoi.mangId.map(id => 
+                    dataBase.ref('nhan_hang/' + id).remove()
+                );
+                Promise.all(cacPromise);
+            }
+            
+            capNhatNutHoanTac();
+        }
+
         function luuNhanHang() {
             let idValue = document.getElementById('idNhan').value;
             let tenNhan = document.getElementById('tenNhan').value.trim();
             let baoHet = document.getElementById('baoHet').value;
             let daGuiIn = document.getElementById('daGuiIn').value;
             let daNhan = document.getElementById('daNhan').value;
-            let ghiChu = document.getElementById('ghiChu').value.trim();
+            let ghiChu = document.getElementById('ghiChu').value; 
 
             if (!idValue) {
                 // luu them moi
                 if (!tenNhan) { alert("Vui lòng nhập tên nhãn!"); return; }
-                let duLieu = { ten: tenNhan, bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu };
-                dataBase.ref('nhan_hang').push(duLieu).then(() => { dongModal('modalNhanHang'); });
+                let duLieu = { ten: tenNhan, bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu.trim() };
+                
+                let refMoi = dataBase.ref('nhan_hang').push();
+                refMoi.set(duLieu).then(() => { 
+                    lichSuThaoTac.push({ loai: 'THEM', id: refMoi.key });
+                    capNhatNutHoanTac();
+                    dongModal('modalNhanHang'); 
+                });
             } else {
                 // luu cap nhat
                 let mangId = JSON.parse(idValue);
@@ -411,16 +453,47 @@
                 if (mangId.length === 1) {
                     // cap nhat 1 nhan binh thuong
                     if (!tenNhan) { alert("Vui lòng nhập tên nhãn!"); return; }
-                    let duLieu = { ten: tenNhan, bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu };
-                    dataBase.ref('nhan_hang/' + mangId[0]).update(duLieu).then(() => { dongModal('modalNhanHang'); });
+                    let duLieu = { ten: tenNhan, bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu.trim() };
+                    
+                    let nhanCu = danhSachNhan.find(n => n.id === mangId[0]);
+                    let duLieuCu = { ...nhanCu };
+                    delete duLieuCu.id;
+
+                    dataBase.ref('nhan_hang/' + mangId[0]).update(duLieu).then(() => { 
+                        lichSuThaoTac.push({ loai: 'SUA', id: mangId[0], duLieuCu: duLieuCu });
+                        capNhatNutHoanTac();
+                        dongModal('modalNhanHang'); 
+                    });
                 } else {
-                    // cap nhat hang loat nhieu nhan (khong luu ten)
-                    let duLieu = { bao_het: baoHet, da_gui_in: daGuiIn, da_nhan: daNhan, ghi_chu: ghiChu };
-                    let cacPromise = mangId.map(id => dataBase.ref('nhan_hang/' + id).update(duLieu));
+                    // cap nhat hang loat
+                    let duLieuHangLoat = {};
+                    if (baoHet !== "" || daGuiIn !== "" || daNhan !== "") {
+                        duLieuHangLoat.bao_het = baoHet;
+                        duLieuHangLoat.da_gui_in = daGuiIn;
+                        duLieuHangLoat.da_nhan = daNhan;
+                    }
+                    if (ghiChu !== "") {
+                        duLieuHangLoat.ghi_chu = ghiChu.trim(); 
+                    }
+                    if (Object.keys(duLieuHangLoat).length === 0) {
+                        alert("Vui lòng nhập trạng thái ngày hoặc ghi chú cần cập nhật chung!");
+                        return;
+                    }
+
+                    // luu tru du lieu cu cua cac nhan se sua
+                    let danhSachCu = mangId.map(id => {
+                        let n = danhSachNhan.find(x => x.id === id);
+                        let duLieuCu = { ...n };
+                        delete duLieuCu.id;
+                        return { id: id, duLieuCu: duLieuCu };
+                    });
+
+                    let cacPromise = mangId.map(id => dataBase.ref('nhan_hang/' + id).update(duLieuHangLoat));
                     
                     Promise.all(cacPromise).then(() => {
+                        lichSuThaoTac.push({ loai: 'SUA_NHIEU', danhSachCu: danhSachCu });
+                        capNhatNutHoanTac();
                         dongModal('modalNhanHang');
-                        // bo chon tat ca cac checkbox sau khi luu thanh cong
                         document.querySelectorAll('.cb-nhan').forEach(cb => cb.checked = false);
                         document.getElementById('chonTatCa').checked = false;
                     });
@@ -430,7 +503,14 @@
 
         function xoaNhanHang(id) {
             if (confirm("Thầy có chắc chắn muốn xóa nhãn hàng này không?")) {
-                dataBase.ref('nhan_hang/' + id).remove();
+                let nhanCu = danhSachNhan.find(n => n.id === id);
+                let duLieuCu = { ...nhanCu };
+                delete duLieuCu.id;
+
+                dataBase.ref('nhan_hang/' + id).remove().then(() => {
+                    lichSuThaoTac.push({ loai: 'XOA', id: id, duLieuCu: duLieuCu });
+                    capNhatNutHoanTac();
+                });
             }
         }
 
@@ -457,7 +537,6 @@
             nutXacNhan.disabled = true;
 
             let ketNoiThanhCong = false;
-            
             let thoiGianCho = setTimeout(function() {
                 if (!ketNoiThanhCong) {
                     alert("Không thể kết nối với Firebase. Thầy hãy kiểm tra lại kết nối mạng nhé!");
@@ -538,6 +617,7 @@
                 cotCheckbox.style.display = "none";
                 btnDoiMa.style.display = "none";
             }
+            capNhatNutHoanTac();
             hienThiBang();
         }
 
@@ -570,6 +650,8 @@
                 let jsonArray = XLSX.utils.sheet_to_json(worksheet, {raw: false});
 
                 let soLuongThem = 0;
+                let mangIdMoi = [];
+
                 jsonArray.forEach(row => {
                     let tenNhanExcel = row["Tên nhãn"] || row["Ten nhan"];
                     if (tenNhanExcel) {
@@ -580,10 +662,18 @@
                             da_nhan: chuyenDoiNgayExcel(row["Đã nhận"] || row["Da nhan"]),
                             ghi_chu: row["Ghi chú"] || row["Ghi chu"] || ""
                         };
-                        dataBase.ref('nhan_hang').push(duLieuMoi);
+                        let refMoi = dataBase.ref('nhan_hang').push();
+                        refMoi.set(duLieuMoi);
+                        mangIdMoi.push(refMoi.key);
                         soLuongThem++;
                     }
                 });
+
+                if (soLuongThem > 0) {
+                    lichSuThaoTac.push({ loai: 'IMPORT', mangId: mangIdMoi });
+                    capNhatNutHoanTac();
+                }
+
                 alert(`Đã import thành công ${soLuongThem} nhãn hàng!`);
                 document.getElementById('fileExcel').value = ""; 
             };
