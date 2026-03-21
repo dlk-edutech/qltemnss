@@ -194,15 +194,15 @@
                     
                     <h2>1. Đăng Nhập & Bảo Mật</h2>
                     <ul>
-                        <li>Để thao tác thêm/sửa/xóa, thầy cần bấm nút <b>Đăng nhập</b> ở góc phải.</li>
+                        <li>Để thao tác thêm/sửa/xóa, bạn cần bấm nút <b>Đăng nhập</b> ở góc phải.</li>
                         <li>Mã PIN mặc định ban đầu là <b>1111</b>.</li>
-                        <li>Sau khi đăng nhập, nút <b>Đổi mã PIN</b> sẽ hiện ra để thầy thiết lập lại mã bí mật của riêng mình.</li>
+                        <li>Sau khi đăng nhập, nút <b>Đổi mã PIN</b> sẽ hiện ra để bạn thiết lập lại mã bí mật của riêng mình.</li>
                     </ul>
 
                     <h2>2. Tìm Kiếm & Thêm Mới</h2>
                     <ul>
                         <li>Ứng dụng đã gộp chung chức năng Tìm kiếm và Thêm mới vào một ô nhập liệu.</li>
-                        <li>Thầy gõ tên nhãn vào ô trống, hệ thống sẽ <b>tự động gợi ý</b> các nhãn đã có.</li>
+                        <li>Gõ tên nhãn vào ô trống, hệ thống sẽ <b>tự động gợi ý</b> các nhãn đã có.</li>
                         <li>Bấm nút <b>Thực hiện</b> (hoặc gõ phím Enter):
                             <br>- Nếu tên nhãn ĐÃ TỒN TẠI: Mở bảng cập nhật của chính nhãn đó.
                             <br>- Nếu tên nhãn CHƯA TỒN TẠI: Mở bảng thêm nhãn mới (tên sẽ được điền sẵn).
@@ -214,7 +214,7 @@
                         <li><b>Sửa 1 nhãn:</b> Bấm nút <b>Sửa</b> trực tiếp ở cột Hành động trên dòng tương ứng.</li>
                         <li><b>Sửa hàng loạt:</b> Tích chọn các ô vuông ở đầu dòng của những nhãn cần thay đổi chung. Sau đó bấm nút <b>Sửa</b> của bất kỳ nhãn nào đang được tích chọn.
                             <br>- Bảng cập nhật hàng loạt sẽ hiện ra với các ô trống trơn.
-                            <br>- Thầy <b>chỉ nhập vào ô cần đổi</b> (ví dụ chọn ngày Đã gửi in). Hệ thống sẽ tự động cập nhật ngày đó cho tất cả các nhãn đã chọn mà <b>không làm mất Ghi chú</b> hiện có của từng nhãn.
+                            <br>- Bạn <b>chỉ nhập vào ô cần đổi</b> (ví dụ chọn ngày Đã gửi in). Hệ thống sẽ tự động cập nhật ngày đó cho tất cả các nhãn đã chọn mà <b>không làm mất Ghi chú</b> hiện có của từng nhãn.
                             <br>- (Mẹo: Nếu muốn xóa ghi chú hàng loạt, chỉ cần gõ 1 dấu cách vào ô Ghi chú).
                         </li>
                     </ul>
@@ -224,12 +224,12 @@
                         <li>Hệ thống ưu tiên hiển thị theo nhóm: <b>Báo hết</b> trên cùng -> <b>Đã gửi in</b> -> <b>Đã nhận</b>.</li>
                         <li>Trong cùng một nhóm, nhãn có ngày <b>cũ hơn</b> sẽ nằm trên.</li>
                         <li>Nếu cùng ngày, các nhãn sẽ được xếp theo vần <b>A-Z</b>.</li>
-                        <li>Thầy có thể bấm vào dòng chữ tiêu đề <b>Tên nhãn ↕</b> để đảo ngược toàn bộ danh sách.</li>
+                        <li>Người dùng có thể bấm vào dòng chữ tiêu đề <b>Tên nhãn ↕</b> để đảo ngược toàn bộ danh sách.</li>
                     </ul>
 
                     <h2>5. Hoàn Tác (Undo)</h2>
                     <ul>
-                        <li>Sau khi thầy thực hiện bất kỳ thao tác làm thay đổi dữ liệu nào (Thêm, Sửa, Sửa hàng loạt, Xóa, Import), nút <b>↩ Hoàn tác</b> sẽ hiện ra.</li>
+                        <li>Sau khi thực hiện bất kỳ thao tác làm thay đổi dữ liệu nào (Thêm, Sửa, Sửa hàng loạt, Xóa, Import), nút <b>↩ Hoàn tác</b> sẽ hiện ra.</li>
                         <li>Bấm vào nút này sẽ giúp khôi phục lại dữ liệu về trạng thái ngay trước khi thao tác (áp dụng lưu được nhiều bước).</li>
                     </ul>
 
@@ -566,7 +566,7 @@
         }
 
         function xoaNhanHang(id) {
-            if (confirm("Thầy có chắc chắn muốn xóa nhãn hàng này không?")) {
+            if (confirm("Bạn có chắc chắn muốn xóa nhãn hàng này không?")) {
                 let nhanCu = danhSachNhan.find(n => n.id === id);
                 let duLieuCu = { ...nhanCu };
                 delete duLieuCu.id;
@@ -603,7 +603,7 @@
             let ketNoiThanhCong = false;
             let thoiGianCho = setTimeout(function() {
                 if (!ketNoiThanhCong) {
-                    alert("Không thể kết nối với Firebase. Thầy hãy kiểm tra lại kết nối mạng nhé!");
+                    alert("Không thể kết nối với Firebase. Vui lòng kiểm tra lại kết nối mạng!");
                     nutXacNhan.innerText = "Xác nhận";
                     nutXacNhan.disabled = false;
                 }
