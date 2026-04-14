@@ -22,14 +22,17 @@
         .o-tim-kiem { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 250px; }
         table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #f8f9fa; cursor: pointer; }
-        th:hover { background-color: #e2e6ea; }
+        th { background-color: #f8f9fa; }
+        .tieu-de-cot { cursor: pointer; display: block; }
+        .tieu-de-cot:hover { color: #007bff; }
+        .o-loc { width: 100%; padding: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-weight: normal; margin-top: 8px; }
+        .o-loc:focus { outline: none; border-color: #007bff; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 20px; border-radius: 5px; width: 400px; max-width: 90%; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
         .form-group input[type="text"], .form-group input[type="date"], .form-group input[type="password"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        .hanh-dong-btn { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: none; border-radius: 3px; color: white; }
+        .hanh-dong-btn { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: none; border-radius: 3px; color: white; margin-bottom: 5px; }
         .btn-sua { background: #17a2b8; }
         .btn-xoa { background: #dc3545; }
         input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
@@ -65,15 +68,30 @@
     <table>
         <thead>
             <tr>
-                <th id="cotCheckbox" style="display: none; width: 40px; text-align: center;">
-                    <input type="checkbox" id="chonTatCa" onclick="chonTatCaNhan(this)">
+                <th id="cotCheckbox" style="display: none; width: 40px; text-align: center; vertical-align: top;">
+                    <input type="checkbox" id="chonTatCa" onclick="chonTatCaNhan(this)" style="margin-top: 10px;">
                 </th>
-                <th onclick="sapXepDuLieu()" style="width: 25%; min-width: 150px;">Tên nhãn ↕</th>
-                <th style="width: 11%; white-space: nowrap;">Báo hết</th>
-                <th style="width: 11%; white-space: nowrap;">Đã gửi in</th>
-                <th style="width: 11%; white-space: nowrap;">Đã nhận</th>
-                <th style="width: 33%;">Ghi chú</th>
-                <th id="cotHanhDong" style="display: none; width: 120px;">Hành động</th>
+                <th style="width: 25%; min-width: 150px; vertical-align: top;">
+                    <div class="tieu-de-cot" onclick="sapXepDuLieu()">Tên nhãn ↕</div>
+                    <input type="text" class="o-loc" placeholder="Lọc tên..." oninput="capNhatBoLoc('ten', this.value)">
+                </th>
+                <th style="width: 11%; white-space: nowrap; vertical-align: top;">
+                    <div>Báo hết</div>
+                    <input type="text" class="o-loc" placeholder="Lọc ngày..." oninput="capNhatBoLoc('bao_het', this.value)">
+                </th>
+                <th style="width: 11%; white-space: nowrap; vertical-align: top;">
+                    <div>Đã gửi in</div>
+                    <input type="text" class="o-loc" placeholder="Lọc ngày..." oninput="capNhatBoLoc('da_gui_in', this.value)">
+                </th>
+                <th style="width: 11%; white-space: nowrap; vertical-align: top;">
+                    <div>Đã nhận</div>
+                    <input type="text" class="o-loc" placeholder="Lọc ngày..." oninput="capNhatBoLoc('da_nhan', this.value)">
+                </th>
+                <th style="width: 33%; vertical-align: top;">
+                    <div>Ghi chú</div>
+                    <input type="text" class="o-loc" placeholder="Lọc ghi chú..." oninput="capNhatBoLoc('ghi_chu', this.value)">
+                </th>
+                <th id="cotHanhDong" style="display: none; width: 120px; vertical-align: top;">Hành động</th>
             </tr>
         </thead>
         <tbody id="bangDuLieu">
@@ -186,6 +204,7 @@
         let danhSachNhan = [];
         let thuTuSapXep = 1; 
         let lichSuThaoTac = []; 
+        let dieuKienLoc = { ten: '', bao_het: '', da_gui_in: '', da_nhan: '', ghi_chu: '' };
 
         // khoi tao ma pin mac dinh
         dataBase.ref('cai_dat/ma_pin').once('value', snapshot => {
@@ -241,28 +260,22 @@
                         </li>
                     </ul>
 
-                    <h2>4. Sắp Xếp Hiển Thị</h2>
+                    <h2>4. Sắp Xếp & Lọc Dữ Liệu</h2>
                     <ul>
-                        <li>Hệ thống ưu tiên hiển thị theo nhóm: <b>Báo hết</b> trên cùng -> <b>Đã gửi in</b> -> <b>Đã nhận</b>.</li>
-                        <li>Trong cùng một nhóm, nhãn có ngày <b>cũ hơn</b> sẽ nằm trên.</li>
-                        <li>Nếu cùng ngày, các nhãn sẽ được xếp theo vần <b>A-Z</b>.</li>
-                        <li>Người dùng có thể bấm vào dòng chữ tiêu đề <b>Tên nhãn ↕</b> để đảo ngược toàn bộ danh sách.</li>
+                        <li><b>Sắp xếp:</b> Hệ thống ưu tiên hiển thị theo nhóm: Báo hết -> Đã gửi in -> Đã nhận. Trong cùng nhóm xếp theo ngày cũ nằm trên, sau đó xếp vần A-Z. Bấm chữ <b>Tên nhãn ↕</b> để đảo ngược danh sách.</li>
+                        <li><b>Lọc (Tìm kiếm chi tiết):</b> Ngay dưới tiêu đề mỗi cột có một ô <b>Lọc...</b>. Bạn có thể gõ văn bản hoặc ngày tháng (theo định dạng DD/MM/YY hiển thị) vào các ô này để lọc nhanh các nhãn thỏa mãn điều kiện.</li>
                     </ul>
 
                     <h2>5. Hoàn Tác (Undo)</h2>
                     <ul>
-                        <li>Sau khi thực hiện bất kỳ thao tác làm thay đổi dữ liệu nào (Thêm, Sửa, Sửa hàng loạt, Xóa, Import), nút <b>↩ Hoàn tác</b> sẽ hiện ra.</li>
-                        <li>Bấm vào nút này sẽ giúp khôi phục lại dữ liệu về trạng thái ngay trước khi thao tác (áp dụng lưu được nhiều bước).</li>
+                        <li>Sau khi thực hiện bất kỳ thao tác làm thay đổi dữ liệu nào (Thêm, Sửa, Xóa, Import...), nút <b>↩ Hoàn tác</b> sẽ hiện ra.</li>
+                        <li>Bấm vào nút này sẽ giúp khôi phục lại dữ liệu về trạng thái ngay trước khi thao tác.</li>
                     </ul>
 
                     <h2>6. Xuất / Import Excel</h2>
                     <ul>
-                        <li><b>Xuất Excel:</b> Nhấn nút <b>Xuất Excel</b> để tải toàn bộ danh sách hiện tại về máy tính dưới định dạng file .xlsx.</li>
-                        <li><b>Import Excel:</b> Giúp nhập nhanh hàng loạt nhãn từ file Excel. Sẽ có 2 tùy chọn:
-                            <br>- <b>Thêm vào danh sách hiện có:</b> Giữ nguyên dữ liệu cũ, chỉ cộng thêm dữ liệu mới từ file.
-                            <br>- <b>Xóa toàn bộ dữ liệu cũ:</b> Xóa sạch danh sách hiện tại và thay thế hoàn toàn bằng dữ liệu từ file Excel.
-                        </li>
-                        <li>File Excel cần có chính xác các cột tiêu đề sau ở dòng đầu tiên: <b>Tên nhãn</b>, <b>Báo hết</b>, <b>Đã gửi in</b>, <b>Đã nhận</b>, <b>Ghi chú</b>.</li>
+                        <li><b>Xuất Excel:</b> Bấm <b>Xuất Excel</b> để tải danh sách hiện tại (đã được lọc/sắp xếp) về máy.</li>
+                        <li><b>Import Excel:</b> Nhập hàng loạt nhãn từ file Excel với 2 tùy chọn Thêm tiếp hoặc Xóa toàn bộ dữ liệu cũ. File Excel cần có chính xác các cột tiêu đề: <b>Tên nhãn</b>, <b>Báo hết</b>, <b>Đã gửi in</b>, <b>Đã nhận</b>, <b>Ghi chú</b>.</li>
                     </ul>
                 </body>
                 </html>
@@ -318,7 +331,12 @@
             oTimKiem.value = '';
         }
 
-        // cac ham sap xep
+        // cac ham sap xep va loc
+        function capNhatBoLoc(truong, giaTri) {
+            dieuKienLoc[truong] = giaTri.toLowerCase().trim();
+            hienThiBang();
+        }
+
         function layGiaTriNgay(nhan) {
             let chuoiNgay = nhan.bao_het || nhan.da_gui_in || nhan.da_nhan || "";
             if (!chuoiNgay) return 0;
@@ -370,7 +388,22 @@
             const tbody = document.getElementById('bangDuLieu');
             tbody.innerHTML = '';
             
-            danhSachNhan.sort((a, b) => {
+            // Ap dung loc du lieu truoc khi sap xep
+            let danhSachHienThi = danhSachNhan.filter(nhan => {
+                let ngayBaoHet = dinhDangNgayVN(nhan.bao_het).toLowerCase();
+                let ngayDaGuiIn = dinhDangNgayVN(nhan.da_gui_in).toLowerCase();
+                let ngayDaNhan = dinhDangNgayVN(nhan.da_nhan).toLowerCase();
+                let tenNhan = (nhan.ten || "").toLowerCase();
+                let ghiChu = (nhan.ghi_chu || "").toLowerCase();
+
+                return (!dieuKienLoc.ten || tenNhan.includes(dieuKienLoc.ten)) &&
+                       (!dieuKienLoc.bao_het || ngayBaoHet.includes(dieuKienLoc.bao_het)) &&
+                       (!dieuKienLoc.da_gui_in || ngayDaGuiIn.includes(dieuKienLoc.da_gui_in)) &&
+                       (!dieuKienLoc.da_nhan || ngayDaNhan.includes(dieuKienLoc.da_nhan)) &&
+                       (!dieuKienLoc.ghi_chu || ghiChu.includes(dieuKienLoc.ghi_chu));
+            });
+            
+            danhSachHienThi.sort((a, b) => {
                 let nhomA = layNhomTrangThai(a);
                 let nhomB = layNhomTrangThai(b);
                 if (nhomA !== nhomB) {
@@ -388,7 +421,7 @@
                 return tenA.localeCompare(tenB) * thuTuSapXep;
             });
 
-            danhSachNhan.forEach(nhan => {
+            danhSachHienThi.forEach(nhan => {
                 let tr = document.createElement('tr');
                 let oCheckbox = daDangNhap ? `<td style="text-align: center;"><input type="checkbox" class="cb-nhan" value="${nhan.id}" onclick="capNhatTrangThaiChonTatCa()"></td>` : "";
 
@@ -405,6 +438,7 @@
                     html += `
                         <td>
                             <button class="hanh-dong-btn btn-sua" onclick="moHopThoaiSua('${nhan.id}')">Sửa</button>
+                            <br>
                             <button class="hanh-dong-btn btn-xoa" onclick="xoaNhanHang('${nhan.id}')">Xóa</button>
                         </td>
                     `;
@@ -721,21 +755,27 @@
             hienThiBang();
         }
 
-        // Chuc nang Xuat Excel
+        // Chuc nang Xuat Excel (Chi xuat du lieu dang duoc loc hien thi)
         function xuatDuLieuExcel() {
-            if (danhSachNhan.length === 0) {
+            let cacHang = document.querySelectorAll('#bangDuLieu tr');
+            if (cacHang.length === 0) {
                 alert("Không có dữ liệu để xuất!");
                 return;
             }
 
-            let duLieuXuat = danhSachNhan.map(nhan => {
-                return {
-                    "Tên nhãn": nhan.ten || "",
-                    "Báo hết": nhan.bao_het || "",
-                    "Đã gửi in": nhan.da_gui_in || "",
-                    "Đã nhận": nhan.da_nhan || "",
-                    "Ghi chú": nhan.ghi_chu || ""
-                };
+            let duLieuXuat = [];
+            // Thu thap du lieu truc tiep tu bang dang hien thi de dung chuan voi bo loc
+            cacHang.forEach(tr => {
+                let cacCot = tr.querySelectorAll('td');
+                let chiSoBatDau = daDangNhap ? 1 : 0; 
+                
+                duLieuXuat.push({
+                    "Tên nhãn": cacCot[chiSoBatDau].innerText,
+                    "Báo hết": cacCot[chiSoBatDau + 1].innerText,
+                    "Đã gửi in": cacCot[chiSoBatDau + 2].innerText,
+                    "Đã nhận": cacCot[chiSoBatDau + 3].innerText,
+                    "Ghi chú": cacCot[chiSoBatDau + 4].innerText
+                });
             });
 
             let ws = XLSX.utils.json_to_sheet(duLieuXuat);
