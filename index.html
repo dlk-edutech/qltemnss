@@ -28,7 +28,7 @@
         .modal-content { background: white; padding: 20px; border-radius: 5px; width: 400px; max-width: 90%; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .form-group input[type="text"], .form-group input[type="date"], .form-group input[type="password"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
         .hanh-dong-btn { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: none; border-radius: 3px; color: white; }
         .btn-sua { background: #17a2b8; }
         .btn-xoa { background: #dc3545; }
@@ -56,8 +56,8 @@
 
             <div style="margin-left: auto; display: flex; gap: 10px;">
                 <button id="btnHoanTac" class="nut-bam" style="background: #6c757d; display: none;" onclick="thucHienHoanTac()">↩ Hoàn tác</button>
-                <input type="file" id="fileExcel" accept=".xlsx, .xls" style="display: none;" onchange="nhapDuLieuExcel(event)">
-                <button class="nut-bam" style="background: #17a2b8;" onclick="document.getElementById('fileExcel').click()">Import Excel</button>
+                <button class="nut-bam" style="background: #28a745;" onclick="xuatDuLieuExcel()">Xuất Excel</button>
+                <button class="nut-bam" style="background: #17a2b8;" onclick="moHopThoaiImport()">Import Excel</button>
             </div>
         </div>
     </div>
@@ -107,6 +107,29 @@
             <div style="text-align: right;">
                 <button class="nut-bam nut-huy" onclick="dongModal('modalNhanHang')">Hủy</button>
                 <button class="nut-bam" onclick="luuNhanHang()">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalImport" class="modal">
+        <div class="modal-content" style="width: 350px;">
+            <h3>Tải lên dữ liệu (Excel)</h3>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-weight: normal; margin-bottom: 10px; display: block; cursor: pointer;">
+                    <input type="radio" name="tuyChonImport" value="them" checked style="transform: scale(1.2); margin-right: 5px;"> 
+                    Thêm vào danh sách hiện có
+                </label>
+                <label style="font-weight: normal; color: #dc3545; display: block; cursor: pointer;">
+                    <input type="radio" name="tuyChonImport" value="xoa" style="transform: scale(1.2); margin-right: 5px;"> 
+                    Xóa toàn bộ dữ liệu cũ rồi tải lên
+                </label>
+            </div>
+            <div class="form-group">
+                <input type="file" id="fileExcelImport" accept=".xlsx, .xls" style="border: none; padding: 0;">
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="nut-bam nut-huy" onclick="dongModal('modalImport')">Hủy</button>
+                <button class="nut-bam" onclick="thucHienImport()">Xác nhận tải lên</button>
             </div>
         </div>
     </div>
@@ -232,9 +255,13 @@
                         <li>Bấm vào nút này sẽ giúp khôi phục lại dữ liệu về trạng thái ngay trước khi thao tác (áp dụng lưu được nhiều bước).</li>
                     </ul>
 
-                    <h2>6. Import Excel</h2>
+                    <h2>6. Xuất / Import Excel</h2>
                     <ul>
-                        <li>Giúp nhập nhanh hàng loạt nhãn mới từ file Excel (.xlsx hoặc .xls).</li>
+                        <li><b>Xuất Excel:</b> Nhấn nút <b>Xuất Excel</b> để tải toàn bộ danh sách hiện tại về máy tính dưới định dạng file .xlsx.</li>
+                        <li><b>Import Excel:</b> Giúp nhập nhanh hàng loạt nhãn từ file Excel. Sẽ có 2 tùy chọn:
+                            <br>- <b>Thêm vào danh sách hiện có:</b> Giữ nguyên dữ liệu cũ, chỉ cộng thêm dữ liệu mới từ file.
+                            <br>- <b>Xóa toàn bộ dữ liệu cũ:</b> Xóa sạch danh sách hiện tại và thay thế hoàn toàn bằng dữ liệu từ file Excel.
+                        </li>
                         <li>File Excel cần có chính xác các cột tiêu đề sau ở dòng đầu tiên: <b>Tên nhãn</b>, <b>Báo hết</b>, <b>Đã gửi in</b>, <b>Đã nhận</b>, <b>Ghi chú</b>.</li>
                     </ul>
                 </body>
@@ -485,11 +512,21 @@
                     dataBase.ref('nhan_hang/' + item.id).set(item.duLieuCu)
                 );
                 Promise.all(cacPromise);
-            } else if (hanhDongCuoi.loai === 'IMPORT') {
+            } else if (hanhDongCuoi.loai === 'IMPORT_THEM') {
                 let cacPromise = hanhDongCuoi.mangId.map(id => 
                     dataBase.ref('nhan_hang/' + id).remove()
                 );
                 Promise.all(cacPromise);
+            } else if (hanhDongCuoi.loai === 'IMPORT_REPLACE') {
+                let cacPromiseXoa = hanhDongCuoi.mangIdMoi.map(id => 
+                    dataBase.ref('nhan_hang/' + id).remove()
+                );
+                let cacPromiseThem = hanhDongCuoi.duLieuCu.map(nhan => {
+                    let duLieu = { ...nhan };
+                    delete duLieu.id;
+                    return dataBase.ref('nhan_hang/' + nhan.id).set(duLieu);
+                });
+                Promise.all([...cacPromiseXoa, ...cacPromiseThem]);
             }
             
             capNhatNutHoanTac();
@@ -684,6 +721,29 @@
             hienThiBang();
         }
 
+        // Chuc nang Xuat Excel
+        function xuatDuLieuExcel() {
+            if (danhSachNhan.length === 0) {
+                alert("Không có dữ liệu để xuất!");
+                return;
+            }
+
+            let duLieuXuat = danhSachNhan.map(nhan => {
+                return {
+                    "Tên nhãn": nhan.ten || "",
+                    "Báo hết": nhan.bao_het || "",
+                    "Đã gửi in": nhan.da_gui_in || "",
+                    "Đã nhận": nhan.da_nhan || "",
+                    "Ghi chú": nhan.ghi_chu || ""
+                };
+            });
+
+            let ws = XLSX.utils.json_to_sheet(duLieuXuat);
+            let wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "DanhSachNhan");
+            XLSX.writeFile(wb, "DanhSachNhanHang.xlsx");
+        }
+
         function chuyenDoiNgayExcel(soExcel) {
             if (!soExcel) return "";
             if (typeof soExcel === "string") {
@@ -700,9 +760,22 @@
             return `${nam}-${thang}-${ngay}`;
         }
 
-        function nhapDuLieuExcel(event) {
-            let file = event.target.files[0];
-            if (!file) return;
+        // Chuc nang Import Excel co lua chon
+        function moHopThoaiImport() {
+            document.getElementById('fileExcelImport').value = '';
+            document.querySelector('input[name="tuyChonImport"][value="them"]').checked = true;
+            document.getElementById('modalImport').style.display = 'flex';
+        }
+
+        function thucHienImport() {
+            let fileInput = document.getElementById('fileExcelImport');
+            let file = fileInput.files[0];
+            if (!file) {
+                alert("Vui lòng chọn file Excel!");
+                return;
+            }
+
+            let tuyChon = document.querySelector('input[name="tuyChonImport"]:checked').value;
 
             let reader = new FileReader();
             reader.onload = function(e) {
@@ -712,9 +785,15 @@
                 let worksheet = workbook.Sheets[sheetName];
                 let jsonArray = XLSX.utils.sheet_to_json(worksheet, {raw: false});
 
-                let soLuongThem = 0;
                 let mangIdMoi = [];
+                let duLieuCuKkhiXoa = [...danhSachNhan]; 
 
+                if (tuyChon === 'xoa') {
+                    if(!confirm("CẢNH BÁO: Toàn bộ dữ liệu hiện tại sẽ bị xóa để thay thế bằng dữ liệu từ file Excel. Bạn có chắc chắn không?")) return;
+                    dataBase.ref('nhan_hang').remove();
+                }
+
+                let soLuongThem = 0;
                 jsonArray.forEach(row => {
                     let tenNhanExcel = row["Tên nhãn"] || row["Ten nhan"];
                     if (tenNhanExcel) {
@@ -732,13 +811,17 @@
                     }
                 });
 
-                if (soLuongThem > 0) {
-                    lichSuThaoTac.push({ loai: 'IMPORT', mangId: mangIdMoi });
+                if (soLuongThem > 0 || tuyChon === 'xoa') {
+                    if (tuyChon === 'xoa') {
+                        lichSuThaoTac.push({ loai: 'IMPORT_REPLACE', mangIdMoi: mangIdMoi, duLieuCu: duLieuCuKkhiXoa });
+                    } else {
+                        lichSuThaoTac.push({ loai: 'IMPORT_THEM', mangId: mangIdMoi });
+                    }
                     capNhatNutHoanTac();
                 }
 
-                alert(`Đã import thành công ${soLuongThem} nhãn hàng!`);
-                document.getElementById('fileExcel').value = ""; 
+                alert(`Đã tải lên thành công ${soLuongThem} nhãn hàng!`);
+                dongModal('modalImport');
             };
             reader.readAsArrayBuffer(file);
         }
